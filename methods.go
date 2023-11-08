@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"os"
 
@@ -92,7 +93,9 @@ func (t *terminal) GetSize() {
 }
 
 func (t *terminal) CreateBlockBuffer() {
-	blocks := t.xBlock * t.yBlock
+
+	rest := t.yImgResized % 2
+	blocks := t.xImgResized * (t.yImgResized + rest)
 
 	t.blockBuffer = new([]RGB)
 	*t.blockBuffer = make([]RGB, blocks)
@@ -104,8 +107,8 @@ func (t *terminal) RenderBlockGfxFrameRGB() {
 	var y, x int
 	var v, w RGB
 	var p string
-	xSize := t.xBlock
-	ySize := t.yBlock
+	xSize := t.xImgResized
+	ySize := t.yImgResized
 	for y = 0; y < ySize; y += 2 {
 		for x = 0; x < xSize; x++ {
 			v = (*t.blockBuffer)[y*xSize+x]
@@ -113,6 +116,7 @@ func (t *terminal) RenderBlockGfxFrameRGB() {
 			p = fmt.Sprintf("\x1b[38;2;%d;%d;%dm\x1b[48;2;%d;%d;%dm%c", v.r, v.g, v.b, w.r, w.g, w.b, feedBlock)
 			os.Stdout.WriteString(p)
 		}
+		os.Stdout.WriteString("\x1b[m\n")
 	}
 
 }
@@ -123,8 +127,8 @@ func (t *terminal) RenderBlockGfxFrame256() {
 	var y, x int
 	var v, w RGB
 	var p string
-	xSize := t.xBlock
-	ySize := t.yBlock
+	xSize := t.xImgResized
+	ySize := t.yImgResized
 	divider := uint8(47)
 	for y = 0; y < ySize; y += 2 {
 		for x = 0; x < xSize; x++ {
@@ -147,6 +151,7 @@ func (t *terminal) RenderBlockGfxFrame256() {
 			os.Stdout.WriteString(p)
 
 		}
+
 	}
 }
 
@@ -156,8 +161,8 @@ func (t *terminal) RenderBlockGfxFrameGray() {
 	var y, x int
 	var v, w RGB
 	var p string
-	xSize := t.xBlock
-	ySize := t.yBlock
+	xSize := t.xImgResized
+	ySize := t.yImgResized
 	var divider float32 = 11
 	for y = 0; y < ySize; y += 2 {
 		for x = 0; x < xSize; x++ {
@@ -173,6 +178,7 @@ func (t *terminal) RenderBlockGfxFrameGray() {
 			p = fmt.Sprintf("\x1b[38;5;%dm\x1b[48;5;%dm%c", c, k, feedBlock)
 			os.Stdout.WriteString(p)
 		}
+		os.Stdout.WriteString("\x1b[m\n")
 	}
 }
 
@@ -270,8 +276,8 @@ func (t *terminal) render8() {
 	var y, x int
 	var v, w RGB
 	var p string
-	xSize := t.xBlock
-	ySize := t.yBlock
+	xSize := t.xImgResized
+	ySize := t.yImgResized
 	var divider float32 = 11
 	for y = 0; y < ySize; y += 2 {
 		for x = 0; x < xSize; x++ {
@@ -288,6 +294,7 @@ func (t *terminal) render8() {
 			p = kolorGray[int(k)+1]
 			os.Stdout.WriteString(p)
 		}
+		os.Stdout.WriteString("\x1b[m\n")
 	}
 
 	//fmt.Printf("\x1b[m;\nx:%d*y:%d\n", x, y)
@@ -330,3 +337,91 @@ func shades() *[]string {
 	}
 	return &koloriada
 }
+
+func (t *terminal) leastSquares(rgb RGB) int {
+	var color int
+	var lastValue float64 = 500
+	var newValue float64
+	rr := float64(rgb.r)
+	gg := float64(rgb.g)
+	bb := float64(rgb.b)
+	var irr, igg, ibb float64
+	for i, iRGB := range *t.scanColors {
+		irr = float64(iRGB.r)
+		igg = float64(iRGB.g)
+		ibb = float64(iRGB.b)
+		newValue = math.Sqrt((rr-irr)*(rr-irr) + (gg-igg)*(gg-igg) + (bb-ibb)*(bb-ibb))
+		if lastValue > newValue {
+			lastValue = newValue
+			color = i
+		}
+	}
+	return color
+}
+
+func randomNoise(n int) int {
+	return rand.Intn(2*n+1) - n
+}
+
+func (t *terminal) RenderBlockGfxFrame8() {
+	feedBlock := '\u2580'
+	var bg, fg int
+	var y, x int
+	var v, w RGB
+	var p string
+	xSize := t.xImgResized
+	ySize := t.yImgResized
+
+	// Seed the random number generator
+	//rand.Seed(time.Now().UnixNano())
+	seed := 0
+	var vv, ww uint8
+	for y = 0; y < ySize; y += 2 {
+		for x = 0; x < xSize; x++ {
+			v = (*t.blockBuffer)[y*xSize+x]
+			w = (*t.blockBuffer)[(y+1)*xSize+x]
+			vv = uint8(randomNoise(seed))
+			ww = uint8(randomNoise(seed))
+			// Add random noise to RGB values
+
+			v.r += vv // You can adjust the noise range as needed
+			v.g += vv
+			v.b += vv
+			w.r += ww
+			w.g += ww
+			w.b += ww
+
+			// Map noisy RGB values to 16 colors
+			fg = t.leastSquares(v)
+			bg = t.leastSquares(w)
+
+			p = fmt.Sprintf("\x1b[38;5;%dm\x1b[48;5;%dm%c", fg, bg, feedBlock)
+			os.Stdout.WriteString(p)
+		}
+		os.Stdout.WriteString("\x1b[m\n")
+	}
+}
+
+/*
+func (t *terminal) RenderBlockGfxFrame8() {
+	//t.CursorAt(0, 0)
+	feedBlock := '\u2580'
+	var bg, fg int
+	var y, x int
+	var v, w RGB
+	var p string
+	xSize := t.xImgResized
+	ySize := t.yImgResized
+	for y = 0; y < ySize; y += 2 {
+		for x = 0; x < xSize; x++ {
+			v = (*t.blockBuffer)[y*xSize+x]
+			w = (*t.blockBuffer)[(y+1)*xSize+x]
+			fg = t.leastSquares(v)
+			bg = t.leastSquares(w)
+			p = fmt.Sprintf("\x1b[38;5;%dm\x1b[48;5;%dm%c", fg, bg, feedBlock)
+			os.Stdout.WriteString(p)
+		}
+		os.Stdout.WriteString("\x1b[m\n")
+	}
+
+}*/

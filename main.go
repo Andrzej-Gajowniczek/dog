@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	_ "image/jpeg"
+	_ "image/png"
 	"log"
 	"os"
 
@@ -15,7 +15,7 @@ type RGB struct {
 	r uint8
 	g uint8
 	b uint8
-	_ uint8
+	n uint8
 }
 type terminal struct {
 	fd              int
@@ -33,32 +33,62 @@ type terminal struct {
 	Lflag           uint32
 	termProportions float64
 	imgProportions  float64
+	xImgResized     int
+	yImgResized     int
+	scanColors      *[]RGB
 }
 
 func main() {
-	term.InitScreen()
-	term.ClearScreen()
-	term.RawMode()
-	term.CursorHide()
-	term.GetSize()
-	term.CreateBlockBuffer()
-	term.RestoreNormal()
-	term.CursorShow()
 
+	//color2index := make(map[RGB]int, 16)
+	list := []RGB{
+		{0x17, 0x14, 0x21, 0},
+		{0xbd, 0x1b, 0x21, 1},
+		{0x26, 0xa2, 0x69, 2},
+		{0xff, 0x74, 0x00, 3},
+		{0x12, 0x48, 0x8b, 4},
+		{0xa3, 0x47, 0xba, 5},
+		{0x2a, 0xa1, 0xb3, 6},
+		{0xd0, 0xcf, 0xcc, 7},
+		{0x5e, 0x5c, 0x64, 8},
+		{0xf6, 0x61, 0x51, 9},
+		{0x33, 0xda, 0x7a, 10},
+		{0xe9, 0xad, 0x0c, 11},
+		{0x2a, 0x7b, 0xde, 12},
+		{0xc0, 0x61, 0xcb, 13},
+		{0x33, 0xc7, 0xde, 14},
+		{0xff, 0xff, 0xff, 15},
+	}
+	term.scanColors = &list
+
+	term.GetSize()
+	term.InitScreen()
+
+	term.ClearScreen()
+	//term.RawMode()
+	//term.CursorHide()
+
+	//term.RestoreNormal()
+	term.CursorShow()
 	reader, err := os.Open("ocelot.jpg")
+	//reader, err := os.Open("dog2.png")
 	defer reader.Close()
 	if err != nil {
 		log.Fatal("can't open img", err)
 	}
 	origImg, _, err := image.Decode(reader)
-	origImg = origImg
-	newImg := resize.Resize(uint(term.xBlock), uint(term.yBlock), origImg, resize.Lanczos3)
+	//origImg = origImg
+	newImg := resize.Resize(uint(term.xBlock), uint(0), origImg, resize.Lanczos3)
 
 	bound := newImg.Bounds()
 	ximg := bound.Max.X
+	term.xImgResized = bound.Max.X
 	yimg := bound.Max.Y
-	term.CursorAt(50, 10)
-	fmt.Printf("ximg:%d yimg:%d\n", ximg, yimg)
+	term.yImgResized = bound.Max.Y
+
+	term.CreateBlockBuffer()
+	//term.CursorAt(50, 10)
+	//fmt.Printf("ximg:%d yimg:%d\n", ximg, yimg)
 
 	term.CursorAt(0, 0)
 	for i := 0; i < ximg; i++ {
@@ -75,6 +105,7 @@ func main() {
 	term.RenderBlockGfxFrameGray()
 	term.RenderBlockGfxFrame256()
 	term.render8()
+	term.RenderBlockGfxFrame8()
 	/*
 		time.Sleep(4000 * time.Microsecond)
 		term.RenderBlockGfxFrame256()
