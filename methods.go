@@ -359,6 +359,7 @@ func (t *terminal) leastSquares(rgb RGB) int {
 	return color
 }
 
+/*
 func randomNoise(n int) int {
 	return rand.Intn(2*n+1) - n
 }
@@ -401,8 +402,8 @@ func (t *terminal) RenderBlockGfxFrame8() {
 		os.Stdout.WriteString("\x1b[m\n")
 	}
 }
+*/
 
-/*
 func (t *terminal) RenderBlockGfxFrame8() {
 	//t.CursorAt(0, 0)
 	feedBlock := '\u2580'
@@ -424,4 +425,71 @@ func (t *terminal) RenderBlockGfxFrame8() {
 		os.Stdout.WriteString("\x1b[m\n")
 	}
 
-}*/
+}
+
+func (t *terminal) RenderBlockGfxFrame808() {
+	//t.CursorAt(0, 0)
+	feedBlock := '\u2580'
+	var bg, fg int
+	var y, x int
+	var v, w RGB
+	var p string
+	xSize := t.xImgResized
+	ySize := t.yImgResized
+	for y = 0; y < ySize; y += 2 {
+		for x = 0; x < xSize; x++ {
+			v = (*t.blockBuffer)[y*xSize+x]
+			w = (*t.blockBuffer)[(y+1)*xSize+x]
+			w.n = 0
+			v.n = 0
+			if v.r <= 17 {
+				v.r = 0
+			} else if v.r <= 23 {
+				v.r = 1
+			} else {
+				v.r = 2
+			}
+			if v.g <= 17 {
+				v.g = 0
+			} else if v.g <= 47 {
+				v.g = 1
+			} else {
+				v.g = 2
+			}
+			if v.b <= 17 {
+				v.b = 0
+			} else if v.b <= 63 {
+				v.b = 1
+			} else {
+				v.b = 2
+			}
+			if w.r <= 17 {
+				w.r = 0
+			} else if w.r <= 32 {
+				w.r = 1
+			} else {
+				w.r = 2
+			}
+			if w.g <= 17 {
+				w.g = 0
+			} else if w.g <= 78 {
+				w.g = 1
+			} else {
+				w.g = 2
+			}
+			if v.b <= 17 {
+				w.b = 0
+			} else if v.b <= 90 {
+				w.b = 1
+			} else {
+				w.b = 2
+			}
+			fg = t.man[v]
+			bg = t.man[w]
+			p = fmt.Sprintf("\x1b[38;5;%dm\x1b[48;5;%dm%c", fg, bg, feedBlock)
+			os.Stdout.WriteString(p)
+		}
+		os.Stdout.WriteString("\x1b[m\n")
+	}
+
+}
