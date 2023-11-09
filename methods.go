@@ -138,12 +138,9 @@ func (t *terminal) RenderBlockGfxFrame256() {
 			v.r = addRandomNoise256(v.r)
 			v.g = addRandomNoise256(v.g)
 			v.b = addRandomNoise256(v.b)
-
 			w.r = addRandomNoise256(w.r)
 			w.g = addRandomNoise256(w.g)
 			w.b = addRandomNoise256(w.b)
-
-			//v, w = t.applySteinbergHoffmanDithering(v, w, float32(divider), x, y)
 
 			c := 16 + 36*(v.r/divider) + 6*(v.g/divider) + 1*(v.b/divider)
 			k := 16 + 36*(w.r/divider) + 6*(w.g/divider) + 1*(w.b/divider)
@@ -213,65 +210,7 @@ func addRandomNoise256(value uint8) uint8 {
 	return uint8(result)
 }
 
-/*
-func (t *terminal) applySteinbergHoffmanDithering(v RGB, w RGB, divider float32, x, y int) (RGB, RGB) {
-	// Define the error coefficients for Steinberg-Hoffman dithering
-	errCoefs := [3][3]float32{
-		{0.0, 0.0, 7.0 / 16.0},
-		{3.0 / 16.0, 5.0 / 16.0, 1.0 / 16.0},
-		{0.0, 1.0 / 16.0, 0.0},
-	}
-
-	// Calculate the errors for v and w
-	var errorV RGB
-	var errorW RGB
-	errorV.r = v.r - uint8((float32(v.r)/255.0)*divider*255.0)
-	errorV.g = v.g - uint8((float32(v.g)/255.0)*divider*255.0)
-	errorV.b = v.b - uint8((float32(v.b)/255.0)*divider*255.0)
-
-	errorW.r = w.r - uint8((float32(w.r)/255.0)*divider*255.0)
-	errorW.g = w.g - uint8((float32(w.g)/255.0)*divider*255.0)
-	errorW.b = w.b - uint8((float32(w.b)/255.0)*divider*255.0)
-
-	// Apply dithering error diffusion to v
-	for i := 0; i < 3; i++ {
-		for j := 0; j < 3; j++ {
-			if x+i < t.xBlock && y+j < t.yBlock {
-				(*t.blockBuffer)[(y+j)*t.xBlock+(x+i)].r += uint8(errCoefs[i][j] * float32(errorV.r))
-				(*t.blockBuffer)[(y+j)*t.xBlock+(x+i)].g += uint8(errCoefs[i][j] * float32(errorV.g))
-				(*t.blockBuffer)[(y+j)*t.xBlock+(x+i)].b += uint8(errCoefs[i][j] * float32(errorV.b))
-			}
-		}
-	}
-
-	// Apply dithering error diffusion to w (on the next row)
-	for i := 0; i < 3; i++ {
-		for j := 0; j < 3; j++ {
-			if x+i < t.xBlock && y+j+1 < t.yBlock {
-				(*t.blockBuffer)[(y+j+1)*t.xBlock+(x+i)].r += uint8(errCoefs[i][j] * float32(errorW.r))
-				(*t.blockBuffer)[(y+j+1)*t.xBlock+(x+i)].g += uint8(errCoefs[i][j] * float32(errorW.g))
-				(*t.blockBuffer)[(y+j+1)*t.xBlock+(x+i)].b += uint8(errCoefs[i][j] * float32(errorW.b))
-			}
-		}
-	}
-
-	return v, w
-}
-*/
-
 func (t *terminal) render8() {
-	/*	kolorGray := []string{"\x1b[38;5;0m\x1b[48;5;8m█", "\x1b[38;5;0m\x1b[48;5;8m▒", "\x1b[38;5;0m\x1b[48;5;8m░", "\x1b[38;5;8m\x1b[48;5;7m█",
-		"\x1b[38;5;8m\x1b[48;5;7m▒", "\x1b[38;5;8m\x1b[48;5;7m░", "\x1b[38;5;7m\x1b[48;5;15m█", "\x1b[38;5;7m\x1b[48;5;15m▒",
-		"\x1b[38;5;7m\x1b[48;5;15m░", "\x1b[38;5;15m\x1b[48;5;15m█", "\x1b[38;5;15m\x1b[48;5;15m▒", "\x1b[38;5;15m\x1b[48;5;15m░"}
-	*/ //for _, c := range kolorGray {
-	//	fmt.Print(c)
-	//}
-
-	//	fmt.Println("\x1b[m", len(kolorGray))
-
-	//t.CursorAt(0, 0)
-	//feedBlock := '\u2580'
-
 	kolorGray := *shades()
 	var y, x int
 	var v, w RGB
@@ -297,8 +236,6 @@ func (t *terminal) render8() {
 		os.Stdout.WriteString("\x1b[m\n")
 	}
 
-	//fmt.Printf("\x1b[m;\nx:%d*y:%d\n", x, y)
-
 }
 
 func shades() *[]string {
@@ -316,23 +253,17 @@ func shades() *[]string {
 
 	var koloriada []string
 	for m, i := range grays {
-		//bcont := true
 		for _, j := range shadding {
 			k := m + 1
 			if k == limitG {
 				k = m
-				//	bcont = false
 			}
 			c := grays[k]
 
 			p := fmt.Sprintf("\x1b[38;5;%dm\x1b[48;5;%dm%c", i, c, j)
 			koloriada = append(koloriada, p)
-			//fmt.Fprintf(plik, "%s", p)
-			//plik.WriteString(",")
+
 			os.Stdout.WriteString(p)
-			/*	if !bcont {
-				break
-			}*/
 		}
 
 	}
@@ -360,51 +291,6 @@ func (t *terminal) leastSquares(rgb RGB) int {
 	}
 	return color
 }
-
-/*
-func randomNoise(n int) int {
-	return rand.Intn(2*n+1) - n
-}
-
-func (t *terminal) RenderBlockGfxFrame8() {
-	feedBlock := '\u2580'
-	var bg, fg int
-	var y, x int
-	var v, w RGB
-	var p string
-	xSize := t.xImgResized
-	ySize := t.yImgResized
-
-	// Seed the random number generator
-	//rand.Seed(time.Now().UnixNano())
-	seed := 0
-	var vv, ww uint8
-	for y = 0; y < ySize; y += 2 {
-		for x = 0; x < xSize; x++ {
-			v = (*t.blockBuffer)[y*xSize+x]
-			w = (*t.blockBuffer)[(y+1)*xSize+x]
-			vv = uint8(randomNoise(seed))
-			ww = uint8(randomNoise(seed))
-			// Add random noise to RGB values
-
-			v.r += vv // You can adjust the noise range as needed
-			v.g += vv
-			v.b += vv
-			w.r += ww
-			w.g += ww
-			w.b += ww
-
-			// Map noisy RGB values to 16 colors
-			fg = t.leastSquares(v)
-			bg = t.leastSquares(w)
-
-			p = fmt.Sprintf("\x1b[38;5;%dm\x1b[48;5;%dm%c", fg, bg, feedBlock)
-			os.Stdout.WriteString(p)
-		}
-		os.Stdout.WriteString("\x1b[m\n")
-	}
-}
-*/
 
 func (t *terminal) RenderBlockGfxFrame8() {
 	//t.CursorAt(0, 0)

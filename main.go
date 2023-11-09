@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
 	"log"
+	"math"
 	"os"
 
 	"github.com/nfnt/resize"
@@ -17,25 +19,19 @@ type RGB struct {
 	n uint8
 }
 type terminal struct {
-	fd int
-	//	mode            int
-	xMax   int
-	yMax   int
-	xBlock int
-	yBlock int
-	//	raw             bool
-	//	activeBuffer    uint8
-	//	flushBuffer     uint8
-	//	clearBuffer     uint8
-	blockBuffer *[]RGB
-	//	originalTermios unix.Termios
+	fd              int
+	xMax            int
+	yMax            int
+	xBlock          int
+	yBlock          int
+	blockBuffer     *[]RGB
 	Lflag           uint32
 	termProportions float64
-	//imgProportions  float64
-	xImgResized int
-	yImgResized int
-	scanColors  *[]RGB
-	man         map[RGB]int
+	xImgResized     int
+	yImgResized     int
+	scanColors      *[]RGB
+	man             map[RGB]int
+	colorMatrix     map[RGB]string
 }
 
 func main() {
@@ -72,7 +68,8 @@ func main() {
 	term.man = manual
 	//color2index := make(map[RGB]int, 16)
 	list := []RGB{
-		{0x17, 0x14, 0x21, 0},
+		//	{0x17, 0x14, 0x21, 0},
+		{0x10, 0x0c, 0x1c, 0},
 		{0xbd, 0x1b, 0x21, 1},
 		{0x26, 0xa2, 0x69, 2},
 		{0xff, 0x74, 0x00, 3},
@@ -90,6 +87,35 @@ func main() {
 		{0xff, 0xff, 0xff, 15},
 	}
 	term.scanColors = &list
+	percentage := []float64{100, 51, 21.875}
+	//matrix map[RGB]sting
+	matrix := make(map[RGB]string, 768)
+	term.colorMatrix = matrix
+	for fg := 0; fg < 16; fg++ {
+
+		fgRGB := list[fg]
+		fgR := float64(fgRGB.r)
+		fgG := float64(fgRGB.g)
+		fgB := float64(fgRGB.b)
+		for bg := 0; bg < 16; bg++ {
+			bgRGB := list[bg]
+			bgR := float64(bgRGB.r)
+			bgG := float64(bgRGB.g)
+			bgB := float64(bgRGB.b)
+
+			for inx, ch := range []rune{'█', '▒', '░'} {
+
+				eR := fgR*percentage[inx]/100 + bgR*(100-percentage[inx])/100
+				eG := fgG*percentage[inx]/100 + bgG*(100-percentage[inx])/100
+				eB := fgB*percentage[inx]/100 + bgB*(100-percentage[inx])/100
+
+				eRGB := RGB{uint8(eR), uint8(eG), uint8(eB), 0}
+
+				matrix[eRGB] = fmt.Sprintf("\x1b[38;5;%dm\x1b[48;5;%dm%c", fg, bg, ch)
+
+			}
+		}
+	}
 
 	term.GetSize()
 	term.InitScreen()
@@ -118,8 +144,6 @@ func main() {
 	term.yImgResized = bound.Max.Y
 
 	term.CreateBlockBuffer()
-	//term.CursorAt(50, 10)
-	//fmt.Printf("ximg:%d yimg:%d\n", ximg, yimg)
 
 	term.CursorAt(0, 0)
 	for i := 0; i < ximg; i++ {
@@ -138,27 +162,51 @@ func main() {
 	term.render8()
 	term.RenderBlockGfxFrame8()
 	term.RenderBlockGfxFrame808()
-	shades()
+	//shades()
+
+	fmt.Println("len(matrix)", len(matrix))
 	/*
-		time.Sleep(4000 * time.Microsecond)
-		term.RenderBlockGfxFrame256()
-		time.Sleep(4000 * time.Microsecond)
-	*/
-	//}
-	/*	time.Sleep(1 / 60 * time.Second)time.Sleep(1 * time.Second)
-		term.RenderBlockGfxFrameGray()
-		time.Sleep(1 * time.Second)
-		term.RenderBlockGfxFrameRGB()
-	*/ //time.Sleep(1 * time.Second)
-	//term.CursorShow()
-	//		fmt.Printf("type:%T", newImg)
+		type fl64RGB = struct {
+			r        float64
+			g        float64
+			b        float64
+			errorRGB float64
+		}*/
+	var lastRGBerr float64 = 1000
+	var bestRGB RGB
+	var lastRGB RGB
+	bestRGB = RGB{0, 0, 0, 0}
+	//lastRGB := fl64RGB{10, 10, 10, 0}
 
-	//		term.CursorAt(40, 20)
-	//		fmt.Printf("len of buffer: %d\n", len(*term.blockBuffer))
+	var sign string = ""
 
-	//fmt.Println("tproportions:", term.termProportions)
-	//	fmt.Printf("xBlock:%d yBlock:%d\n", term.xBlock, term.yBlock)
+	for {
 
-	// fmt.Println(manual)
-	//	term.manualMapping()
+		for rgb, ch := range matrix {
+			lastR := float64(lastRGB.r)
+			lastG := float64(lastRGB.g)
+			lastB := float64(lastRGB.b)
+			currR := float64(rgb.r)
+			currG := float64(rgb.g)
+			currB := float64(rgb.b)
+			errRGB := math.Sqrt((lastR-currR)*(lastR-currR)+(lastG-currG)*(lastG-currG)) + math.Sqrt((lastB-currB)*(lastB-currB))
+			if lastRGBerr > errRGB {
+				lastRGBerr = errRGB
+				bestRGB.r = rgb.r
+				bestRGB.g = rgb.g
+				bestRGB.b = rgb.b
+
+				sign = ch
+
+			}
+		}
+		lastRGB = bestRGB
+
+		fmt.Printf("%s%s%s%s%s%s%s%s\x1b[m%03d,%03d,%03d-% 8f\n", sign, sign, sign, sign, sign, sign, sign, sign, bestRGB.r, bestRGB.g, bestRGB.b, lastRGBerr)
+		lastRGBerr = 1000
+		delete(matrix, RGB{uint8(bestRGB.r), uint8(bestRGB.g), uint8(bestRGB.b), 0})
+		if len(matrix) == 0 {
+			break
+		}
+	}
 }
