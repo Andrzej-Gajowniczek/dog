@@ -138,7 +138,7 @@ func main() {
 	term.render8()
 	term.RenderBlockGfxFrame8()
 	term.RenderBlockGfxFrame808()
-
+	shades()
 	/*
 		time.Sleep(4000 * time.Microsecond)
 		term.RenderBlockGfxFrame256()

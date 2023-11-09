@@ -327,14 +327,16 @@ func shades() *[]string {
 
 			p := fmt.Sprintf("\x1b[38;5;%dm\x1b[48;5;%dm%c", i, c, j)
 			koloriada = append(koloriada, p)
-			//fmt.Fprintf(plik, "%s,", p)
+			//fmt.Fprintf(plik, "%s", p)
 			//plik.WriteString(",")
-			//os.Stdout.WriteString(p)
+			os.Stdout.WriteString(p)
 			/*	if !bcont {
 				break
 			}*/
 		}
+
 	}
+	fmt.Println("\x1b[m")
 	return &koloriada
 }
 
