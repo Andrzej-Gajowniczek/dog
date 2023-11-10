@@ -6,7 +6,6 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"log"
-	"math"
 	"os"
 
 	"github.com/nfnt/resize"
@@ -70,24 +69,24 @@ func main() {
 	list := []RGB{
 		//	{0x17, 0x14, 0x21, 0},
 		{0x10, 0x0c, 0x1c, 0},
-		{0xbd, 0x1b, 0x21, 1},
-		{0x26, 0xa2, 0x69, 2},
-		{0xff, 0x74, 0x00, 3},
-		{0x12, 0x48, 0x8b, 4},
-		{0xa3, 0x47, 0xba, 5},
-		{0x2a, 0xa1, 0xb3, 6},
-		{0xd0, 0xcf, 0xcc, 7},
-		{0x5e, 0x5c, 0x64, 8},
-		{0xf6, 0x61, 0x51, 9},
-		{0x33, 0xda, 0x7a, 10},
-		{0xe9, 0xad, 0x0c, 11},
-		{0x2a, 0x7b, 0xde, 12},
-		{0xc0, 0x61, 0xcb, 13},
-		{0x33, 0xc7, 0xde, 14},
+		{0xde, 0x00, 0x13, 1},
+		{0x00, 0xa7, 0x63, 2},
+		{0xb2, 0x71, 0x42, 3},
+		{0x00, 0x47, 0x72, 4},
+		{0xb7, 0x39, 0xc2, 5},
+		{0x00, 0xa5, 0xb8, 6},
+		{0xd2, 0xd0, 0xcd, 7},
+		{0x5e, 0x5b, 0x65, 8},
+		{0xff, 0x51, 0x44, 9},
+		{0x00, 0xe0, 0x6e, 10},
+		{0xfd, 0xac, 0x00, 11},
+		{0x00, 0x7d, 0xe7, 12},
+		{0xd6, 0x57, 0xd3, 13},
+		{0x00, 0xcc, 0xe3, 14},
 		{0xff, 0xff, 0xff, 15},
 	}
 	term.scanColors = &list
-	percentage := []float64{100, 51, 21.875}
+	percentage := []float64{100, 50, 21.875}
 	//matrix map[RGB]sting
 	matrix := make(map[RGB]string, 768)
 	term.colorMatrix = matrix
@@ -104,6 +103,7 @@ func main() {
 			bgB := float64(bgRGB.b)
 
 			for inx, ch := range []rune{'█', '▒', '░'} {
+				//for inx, ch := range []rune{'▒'} {
 
 				eR := fgR*percentage[inx]/100 + bgR*(100-percentage[inx])/100
 				eG := fgG*percentage[inx]/100 + bgG*(100-percentage[inx])/100
@@ -126,7 +126,7 @@ func main() {
 
 	//term.RestoreNormal()
 	term.CursorShow()
-	//	reader, err := os.Open("ocelot.jpg")
+	//reader, err := os.Open("ocelot.jpg")
 	reader, err := os.Open("dog2.png")
 
 	if err != nil {
@@ -157,56 +157,55 @@ func main() {
 	}
 	//for {
 	term.RenderBlockGfxFrameRGB()
-	term.RenderBlockGfxFrameGray()
+	//term.RenderBlockGfxFrameGray()
+	//t
+	term.renderMagic16()
 	term.RenderBlockGfxFrame256()
-	term.render8()
-	term.RenderBlockGfxFrame8()
-	term.RenderBlockGfxFrame808()
+	term.RenderBlockGfxFrameGray()
+	term.renderBlueMoon()
+	//term.RenderBlockGfxFrame8()
+	//term.RenderBlockGfxFrame808()
 	//shades()
 
-	fmt.Println("len(matrix)", len(matrix))
+	//fmt.Println("len(matrix)", len(matrix))
 	/*
-		type fl64RGB = struct {
-			r        float64
-			g        float64
-			b        float64
-			errorRGB float64
-		}*/
-	var lastRGBerr float64 = 1000
-	var bestRGB RGB
-	var lastRGB RGB
-	bestRGB = RGB{0, 0, 0, 0}
-	//lastRGB := fl64RGB{10, 10, 10, 0}
+		var lastRGBerr float64 = 1000
+		var bestRGB RGB
+		lastRGB := RGB{255, 0, 0, 0}
+		bestRGB = RGB{0, 0, 0, 0}
 
-	var sign string = ""
+		var sign string = ""
 
-	for {
+		for {
 
-		for rgb, ch := range matrix {
-			lastR := float64(lastRGB.r)
-			lastG := float64(lastRGB.g)
-			lastB := float64(lastRGB.b)
-			currR := float64(rgb.r)
-			currG := float64(rgb.g)
-			currB := float64(rgb.b)
-			errRGB := math.Sqrt((lastR-currR)*(lastR-currR)+(lastG-currG)*(lastG-currG)) + math.Sqrt((lastB-currB)*(lastB-currB))
-			if lastRGBerr > errRGB {
-				lastRGBerr = errRGB
-				bestRGB.r = rgb.r
-				bestRGB.g = rgb.g
-				bestRGB.b = rgb.b
+			for rgb, ch := range matrix {
+				lastR := float64(lastRGB.r)
+				lastG := float64(lastRGB.g)
+				lastB := float64(lastRGB.b)
+				currR := float64(rgb.r)
+				currG := float64(rgb.g)
+				currB := float64(rgb.b)
+				errRGB := math.Sqrt((lastR-currR)*(lastR-currR) + (lastG-currG)*(lastG-currG) + (lastB-currB)*(lastB-currB))
+				if lastRGBerr > errRGB {
+					lastRGBerr = errRGB
+					bestRGB.r = rgb.r
+					bestRGB.g = rgb.g
+					bestRGB.b = rgb.b
 
-				sign = ch
+					sign = ch
 
+				}
+			}
+			lastRGB = bestRGB
+
+			fmt.Printf("%s%s%s%s%s%s%s%s\x1b[m%03d,%03d,%03d-% 8f\n", sign, sign, sign, sign, sign, sign, sign, sign, bestRGB.r, bestRGB.g, bestRGB.b, lastRGBerr)
+			lastRGBerr = 1000
+			delete(matrix, RGB{uint8(bestRGB.r), uint8(bestRGB.g), uint8(bestRGB.b), 0})
+			if len(matrix) == 0 {
+				break
 			}
 		}
-		lastRGB = bestRGB
+	*/
+	//	term.renderMagic()
 
-		fmt.Printf("%s%s%s%s%s%s%s%s\x1b[m%03d,%03d,%03d-% 8f\n", sign, sign, sign, sign, sign, sign, sign, sign, bestRGB.r, bestRGB.g, bestRGB.b, lastRGBerr)
-		lastRGBerr = 1000
-		delete(matrix, RGB{uint8(bestRGB.r), uint8(bestRGB.g), uint8(bestRGB.b), 0})
-		if len(matrix) == 0 {
-			break
-		}
-	}
 }

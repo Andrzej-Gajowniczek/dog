@@ -210,7 +210,7 @@ func addRandomNoise256(value uint8) uint8 {
 	return uint8(result)
 }
 
-func (t *terminal) render8() {
+func (t *terminal) renderBlueMoon() {
 	kolorGray := *shades()
 	var y, x int
 	var v, w RGB
@@ -238,6 +238,73 @@ func (t *terminal) render8() {
 
 }
 
+func (t *terminal) renderMagic16() {
+	//kolorGray := *shades()
+	var y, x int
+	var v, w RGB
+	var p string
+	xSize := t.xImgResized
+	ySize := t.yImgResized
+	//var divider float32 = 11
+	for y = 0; y < ySize; y += 2 {
+		for x = 0; x < xSize; x++ {
+			v = (*t.blockBuffer)[y*xSize+x]
+			w = (*t.blockBuffer)[(y+1)*xSize+x]
+			//r := (v.r>>1 + w.r>>1)
+			//g := (v.g>>1 + w.g>>1)
+			//b := (v.b>>1 + w.b>>1)
+			r := float64(v.r)
+			g := float64(v.g)
+			b := float64(v.g)
+			r2 := float64(w.r)
+			g2 := float64(w.g)
+			b2 := float64(w.g)
+
+			qr := (66.333333*r + 33.66666*r2) / 100
+			qg := (66.333333*g + 33.66666*g2) / 100
+			qb := (66.333333*b + 33.66666*b2) / 100
+			challenger := RGB{uint8(qr), uint8(qg), uint8(qb), 0}
+
+			//var vv float32 = (0.299*float32(v.r) + 0.587*float32(v.g) + 0.114*float32(v.g)) / divider
+			//var ww float32 = (0.299*float32(w.r) + 0.587*float32(w.g) + 0.114*float32(w.g)) / divider
+			//vv = addRandomNoise(vv)
+			//ww = addRandomNoise(ww)
+			//vv = vv
+			//ww = ww
+			//k := ww*0.3333333333 + vv*0.66666666666
+			p = t.findMagicRGB(challenger)
+			os.Stdout.WriteString(p)
+		}
+		os.Stdout.WriteString("\x1b[m\n")
+	}
+}
+
+func (t *terminal) findMagicRGB(rgb RGB) string {
+	var result string
+	lastRGBerr := float64(1000)
+	var bestRGB RGB
+
+	for rgbn, ch := range t.colorMatrix {
+		lastR := float64(rgb.r)
+		lastG := float64(rgb.g)
+		lastB := float64(rgb.b)
+		currR := float64(rgbn.r)
+		currG := float64(rgbn.g)
+		currB := float64(rgbn.b)
+		errRGB := math.Sqrt((lastR-currR)*(lastR-currR) + (lastG-currG)*(lastG-currG) + (lastB-currB)*(lastB-currB))
+		if lastRGBerr > errRGB {
+			lastRGBerr = errRGB
+			bestRGB.r = rgb.r
+			bestRGB.g = rgb.g
+			bestRGB.b = rgb.b
+
+			result = ch
+
+		}
+	}
+	return result
+}
+
 func shades() *[]string {
 
 	shadding := []rune{'█', '▒', '░'}
@@ -263,11 +330,11 @@ func shades() *[]string {
 			p := fmt.Sprintf("\x1b[38;5;%dm\x1b[48;5;%dm%c", i, c, j)
 			koloriada = append(koloriada, p)
 
-			os.Stdout.WriteString(p)
+			//os.Stdout.WriteString(p)
 		}
 
 	}
-	fmt.Println("\x1b[m")
+	//	fmt.Println("\x1b[m")
 	return &koloriada
 }
 
