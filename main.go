@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image"
+	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 	"log"
@@ -26,6 +27,9 @@ type terminal struct {
 	blockBuffer     *[]RGB
 	Lflag           uint32
 	termProportions float64
+	xImg            int
+	yImg            int
+	imgRatio        float64
 	xImgResized     int
 	yImgResized     int
 	scanColors      *[]RGB
@@ -104,108 +108,38 @@ func main() {
 
 			for inx, ch := range []rune{'█', '▒', '░'} {
 				//for inx, ch := range []rune{'▒'} {
-
 				eR := fgR*percentage[inx]/100 + bgR*(100-percentage[inx])/100
 				eG := fgG*percentage[inx]/100 + bgG*(100-percentage[inx])/100
 				eB := fgB*percentage[inx]/100 + bgB*(100-percentage[inx])/100
-
 				eRGB := RGB{uint8(eR), uint8(eG), uint8(eB), 0}
-
 				matrix[eRGB] = fmt.Sprintf("\x1b[38;5;%dm\x1b[48;5;%dm%c", fg, bg, ch)
-
 			}
 		}
 	}
 
 	term.GetSize()
 	term.InitScreen()
-
+	term.CursorAt(0, 0)
 	term.ClearScreen()
-	//term.RawMode()
-	//term.CursorHide()
-
-	//term.RestoreNormal()
 	term.CursorShow()
+
 	//reader, err := os.Open("ocelot.jpg")
 	reader, err := os.Open("dog2.png")
-
 	if err != nil {
 		log.Fatal("can't open img", err)
 	}
 	defer reader.Close()
 	origImg, _, _ := image.Decode(reader)
-	//origImg = origImg
-	newImg := resize.Resize(uint(term.xBlock), uint(0), origImg, resize.Lanczos3)
-
-	bound := newImg.Bounds()
-	ximg := bound.Max.X
-	term.xImgResized = bound.Max.X
-	yimg := bound.Max.Y
-	term.yImgResized = bound.Max.Y
-
+	term.imgRatio = CountImgRatio(origImg)
+	term.xImg, term.yImg = GetImgSize(origImg)
+	virtualY := GetYsizeBasedOnXandRatio(term.xBlock, term.imgRatio)
+	newImg := resize.Resize(uint(term.xBlock), uint(virtualY), origImg, resize.Lanczos3)
 	term.CreateBlockBuffer()
+	term.RenderBlockBuffer(newImg)
 
-	term.CursorAt(0, 0)
-	for i := 0; i < ximg; i++ {
-		for j := 0; j < yimg; j++ {
-			r, g, b, _ := newImg.At(i, j).RGBA()
-			(*term.blockBuffer)[j*term.xBlock+i].r = uint8(r >> 8)
-			(*term.blockBuffer)[j*term.xBlock+i].g = uint8(g >> 8)
-			(*term.blockBuffer)[j*term.xBlock+i].b = uint8(b >> 8)
-
-		}
-	}
-	//for {
 	term.RenderBlockGfxFrameRGB()
-	//term.RenderBlockGfxFrameGray()
-	//t
-	term.renderMagic16()
+	term.RenderMagic16()
 	term.RenderBlockGfxFrame256()
 	term.RenderBlockGfxFrameGray()
-	term.renderBlueMoon()
-	//term.RenderBlockGfxFrame8()
-	//term.RenderBlockGfxFrame808()
-	//shades()
-
-	//fmt.Println("len(matrix)", len(matrix))
-	/*
-		var lastRGBerr float64 = 1000
-		var bestRGB RGB
-		lastRGB := RGB{255, 0, 0, 0}
-		bestRGB = RGB{0, 0, 0, 0}
-
-		var sign string = ""
-
-		for {
-
-			for rgb, ch := range matrix {
-				lastR := float64(lastRGB.r)
-				lastG := float64(lastRGB.g)
-				lastB := float64(lastRGB.b)
-				currR := float64(rgb.r)
-				currG := float64(rgb.g)
-				currB := float64(rgb.b)
-				errRGB := math.Sqrt((lastR-currR)*(lastR-currR) + (lastG-currG)*(lastG-currG) + (lastB-currB)*(lastB-currB))
-				if lastRGBerr > errRGB {
-					lastRGBerr = errRGB
-					bestRGB.r = rgb.r
-					bestRGB.g = rgb.g
-					bestRGB.b = rgb.b
-
-					sign = ch
-
-				}
-			}
-			lastRGB = bestRGB
-
-			fmt.Printf("%s%s%s%s%s%s%s%s\x1b[m%03d,%03d,%03d-% 8f\n", sign, sign, sign, sign, sign, sign, sign, sign, bestRGB.r, bestRGB.g, bestRGB.b, lastRGBerr)
-			lastRGBerr = 1000
-			delete(matrix, RGB{uint8(bestRGB.r), uint8(bestRGB.g), uint8(bestRGB.b), 0})
-			if len(matrix) == 0 {
-				break
-			}
-		}
-	*/
-	//	term.renderMagic()
-
+	term.RenderBlueMoon()
 }
