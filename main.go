@@ -134,9 +134,8 @@ func main() {
 	term.xImg, term.yImg = GetImgSize(origImg)
 	virtualY := GetYsizeBasedOnXandRatio(term.xBlock, term.imgRatio)
 	newImg := resize.Resize(uint(term.xBlock), uint(virtualY), origImg, resize.Lanczos3)
-	term.CreateBlockBuffer()
+	//term.CreateBlockBuffer()
 	term.RenderBlockBuffer(newImg)
-
 	term.RenderBlockGfxFrameRGB()
 	term.RenderMagic16()
 	term.RenderBlockGfxFrame256()

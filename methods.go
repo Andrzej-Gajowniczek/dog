@@ -95,8 +95,8 @@ func (t *terminal) GetSize() {
 
 func (t *terminal) CreateBlockBuffer() {
 
-	rest := t.yImgResized % 2
-	blocks := t.xImgResized * (t.yImgResized + rest)
+	//rest := t.yImgResized % 2
+	blocks := t.xImgResized * t.yImgResized
 
 	t.blockBuffer = new([]RGB)
 	*t.blockBuffer = make([]RGB, blocks)
@@ -388,7 +388,7 @@ func (term *terminal) RenderBlockBuffer(newImg image.Image) {
 	bound := newImg.Bounds()
 	term.xImgResized = bound.Max.X
 	term.yImgResized = bound.Max.Y
-
+	term.CreateBlockBuffer()
 	for i := 0; i < term.xImgResized; i++ {
 		for j := 0; j < term.yImgResized; j++ {
 			r, g, b, _ := newImg.At(i, j).RGBA()
